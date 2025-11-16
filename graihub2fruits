@@ -1,0 +1,451 @@
+getgenv().team = "Pirates" -- Marines
+getgenv().AutoHop = true -- Bật tự động hop sau khi nhặt hết trái
+getgenv().AutoStoreFruit = true -- Bật tự động store fruit
+
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer:FindFirstChild("DataLoaded")
+
+-- Tự động chọn team với phương pháp đáng tin cậy hơn
+if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)") then
+    repeat
+        wait()
+        local l_Remotes_0 = game.ReplicatedStorage:WaitForChild("Remotes")
+        l_Remotes_0.CommF_:InvokeServer("SetTeam", getgenv().team)
+        task.wait(3)
+    until not game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)")
+end
+
+-- Tiếp tục đợi GUI chính tải
+repeat task.wait() until game.Players.LocalPlayer.PlayerGui:FindFirstChild("Main")
+
+-- >>> TẢI UI CHÍNH GRAIHUB <<<
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = game.Players.LocalPlayer
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
+-- Tạo UI chính (GraiHubUI)
+local gui = Instance.new("ScreenGui")
+gui.Name = "GraiHubUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 420, 0, 200)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BackgroundTransparency = 1
+mainFrame.Visible = false
+
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
+local stroke = Instance.new("UIStroke", mainFrame)
+stroke.Color = Color3.fromRGB(0, 170, 255)
+stroke.Thickness = 2
+
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, -20, 0, 40)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Grai Hub | Auto Fruit"
+title.TextColor3 = Color3.fromRGB(0, 255, 0)
+title.Font = Enum.Font.Arcade
+title.TextSize = 28
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local infoLabel = Instance.new("TextLabel", mainFrame)
+infoLabel.Size = UDim2.new(1, -20, 0, 40)
+infoLabel.Position = UDim2.new(0, 10, 0, 60)
+infoLabel.BackgroundTransparency = 1
+infoLabel.TextColor3 = Color3.fromRGB(255,255,255)
+infoLabel.TextScaled = true
+infoLabel.Font = Enum.Font.Arcade
+infoLabel.Text = "Loading..."
+
+local statsLabel = Instance.new("TextLabel", mainFrame)
+statsLabel.Size = UDim2.new(1, -20, 0, 40)
+statsLabel.Position = UDim2.new(0, 10, 0, 110)
+statsLabel.BackgroundTransparency = 1
+statsLabel.TextColor3 = Color3.fromRGB(0,255,0)
+statsLabel.Font = Enum.Font.Arcade
+statsLabel.TextSize = 20
+statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Initializing..."
+
+-- 🔘 Nút mở/đóng UI
+local toggleButton = Instance.new("TextButton", gui)
+toggleButton.Size = UDim2.new(0, 120, 0, 40)
+toggleButton.Position = UDim2.new(0, 20, 0, 100)
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+toggleButton.Text = "Open"
+toggleButton.TextColor3 = Color3.fromRGB(0,0,0)
+toggleButton.TextScaled = true
+toggleButton.Font = Enum.Font.Arcade
+Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0, 10)
+
+-- 🔁 Nút Hop Server thủ công
+local hopButton = Instance.new("TextButton", gui)
+hopButton.Size = UDim2.new(0, 120, 0, 40)
+hopButton.Position = UDim2.new(0, 20, 0, 150)
+hopButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+hopButton.Text = "Hop Server"
+hopButton.TextColor3 = Color3.fromRGB(255,255,255)
+hopButton.TextScaled = true
+hopButton.Font = Enum.Font.Arcade
+Instance.new("UICorner", hopButton).CornerRadius = UDim.new(0, 10)
+
+-- 🔘 Nút Toggle Auto Hop
+local autoHopButton = Instance.new("TextButton", gui)
+autoHopButton.Size = UDim2.new(0, 120, 0, 40)
+autoHopButton.Position = UDim2.new(0, 20, 0, 200)
+autoHopButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+autoHopButton.Text = "Auto Hop: ON"
+autoHopButton.TextColor3 = Color3.fromRGB(255,255,255)
+autoHopButton.TextScaled = true
+autoHopButton.Font = Enum.Font.Arcade
+Instance.new("UICorner", autoHopButton).CornerRadius = UDim.new(0, 10)
+
+-- 🔘 Nút Toggle Auto Store Fruit
+local autoStoreButton = Instance.new("TextButton", gui)
+autoStoreButton.Size = UDim2.new(0, 120, 0, 40)
+autoStoreButton.Position = UDim2.new(0, 20, 0, 250)
+autoStoreButton.BackgroundColor3 = Color3.fromRGB(200, 0, 200)
+autoStoreButton.Text = "Auto Store: ON"
+autoStoreButton.TextColor3 = Color3.fromRGB(255,255,255)
+autoStoreButton.TextScaled = true
+autoStoreButton.Font = Enum.Font.Arcade
+Instance.new("UICorner", autoStoreButton).CornerRadius = UDim.new(0, 10)
+
+-- Toggle UI
+local isOpen = false
+toggleButton.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    if isOpen then
+        mainFrame.Visible = true
+        mainFrame.Position = UDim2.new(0.5, 0, 0.55, 0)
+        mainFrame.BackgroundTransparency = 1
+        TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            BackgroundTransparency = 0.1
+        }):Play()
+        toggleButton.Text = "Close"
+    else
+        local tween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(0.5, 0, 0.55, 0),
+            BackgroundTransparency = 1
+        })
+        tween:Play()
+        tween.Completed:Wait()
+        mainFrame.Visible = false
+        toggleButton.Text = "Open"
+    end
+end)
+
+-- Biến toàn cục để kiểm soát hop
+local IsHopping = false
+
+-- Hàm Hop Server đơn giản và hiệu quả
+local function HopServer()
+    if IsHopping then return end
+    IsHopping = true
+    
+    local placeId = game.PlaceId
+    local servers = {}
+    
+    hopButton.Text = "Searching..."
+    hopButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Searching New Server..."
+    
+    -- Lấy danh sách server
+    local success, result = pcall(function()
+        local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
+        local response = game:HttpGet(url)
+        return HttpService:JSONDecode(response)
+    end)
+    
+    if success and result and result.data then
+        for _, server in pairs(result.data) do
+            if server.id ~= game.JobId and server.playing < server.maxPlayers then
+                table.insert(servers, server.id)
+            end
+        end
+        
+        if #servers > 0 then
+            local randomServer = servers[math.random(1, #servers)]
+            hopButton.Text = "Joining..."
+            hopButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Hopping Server..."
+            
+            print("Attempting to hop to server: " .. randomServer)
+            
+            -- Teleport đến server
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(placeId, randomServer, LocalPlayer)
+            end)
+            
+            -- Đợi một lúc trước khi reset trạng thái
+            wait(5)
+        else
+            hopButton.Text = "No Servers"
+            hopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            statsLabel.Text = "FPS: 0 | Ping: 0 | Status: No Available Servers"
+            wait(3)
+        end
+    else
+        hopButton.Text = "Error"
+        hopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Connection Error"
+        wait(3)
+    end
+    
+    -- Reset trạng thái
+    hopButton.Text = "Hop Server"
+    hopButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+    IsHopping = false
+end
+
+-- Kết nối nút Hop Server
+hopButton.MouseButton1Click:Connect(function()
+    HopServer()
+end)
+
+-- Toggle Auto Hop
+autoHopButton.MouseButton1Click:Connect(function()
+    getgenv().AutoHop = not getgenv().AutoHop
+    if getgenv().AutoHop then
+        autoHopButton.Text = "Auto Hop: ON"
+        autoHopButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Auto Hop ON"
+    else
+        autoHopButton.Text = "Auto Hop: OFF"
+        autoHopButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Auto Hop OFF"
+    end
+end)
+
+-- Toggle Auto Store Fruit
+autoStoreButton.MouseButton1Click:Connect(function()
+    getgenv().AutoStoreFruit = not getgenv().AutoStoreFruit
+    if getgenv().AutoStoreFruit then
+        autoStoreButton.Text = "Auto Store: ON"
+        autoStoreButton.BackgroundColor3 = Color3.fromRGB(200, 0, 200)
+        statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Auto Store ON"
+    else
+        autoStoreButton.Text = "Auto Store: OFF"
+        autoStoreButton.BackgroundColor3 = Color3.fromRGB(100, 0, 100)
+        statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Auto Store OFF"
+    end
+end)
+
+-- Hàm kiểm tra còn trái cây trong server
+local function CheckFruitsInServer()
+    local fruitCount = 0
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Tool") and string.find(obj.Name, "Fruit") then
+            fruitCount = fruitCount + 1
+        elseif obj:IsA("Model") and string.find(obj.Name, "Fruit") then
+            fruitCount = fruitCount + 1
+        end
+    end
+    return fruitCount
+end
+
+-- Hàm Auto Store Fruit
+local function AutoStoreFruits()
+    while getgenv().AutoStoreFruit do
+        pcall(function()
+            -- Kiểm tra trong backpack
+            for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+                if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then
+                    local fruitName = tool:GetAttribute("OriginalName") or tool.Name
+                    statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Storing " .. fruitName
+                    
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StoreFruit", fruitName, tool)
+                    wait(1)
+                end
+            end
+            
+            -- Kiểm tra trong character
+            if LocalPlayer.Character then
+                for _, tool in pairs(LocalPlayer.Character:GetChildren()) do
+                    if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then
+                        local fruitName = tool:GetAttribute("OriginalName") or tool.Name
+                        statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Storing " .. fruitName
+                        
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StoreFruit", fruitName, tool)
+                        wait(1)
+                    end
+                end
+            end
+        end)
+        wait(2) -- Kiểm tra mỗi 2 giây
+    end
+end
+
+-- Hàm tìm và nhặt trái cây
+local function CollectFruit(fruit)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    
+    pcall(function()
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1 / 0, 1 / 0, 1 / 0)
+        bodyVelocity.Velocity = Vector3.new()
+        bodyVelocity.Parent = character.HumanoidRootPart
+        
+        local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+        bodyAngularVelocity.AngularVelocity = Vector3.new()
+        bodyAngularVelocity.MaxTorque = Vector3.new(1 / 0, 1 / 0, 1 / 0)
+        bodyAngularVelocity.Parent = character.HumanoidRootPart
+        
+        local tween = TweenService:Create(
+            character.HumanoidRootPart,
+            TweenInfo.new(1, Enum.EasingStyle.Linear),
+            {CFrame = fruit.Handle.CFrame + Vector3.new(0, 3, 0)}
+        )
+        tween:Play()
+        tween.Completed:Wait()
+        
+        character.HumanoidRootPart.CFrame = fruit.Handle.CFrame
+        
+        bodyVelocity:Destroy()
+        bodyAngularVelocity:Destroy()
+        wait(1)
+    end)
+end
+
+-- Hàm chính để tìm và xử lý trái cây
+local function MainFruitSystem()
+    while getgenv().AutoHop do
+        -- Kiểm tra fruit ngay lập tức
+        local fruitCount = CheckFruitsInServer()
+        
+        if fruitCount == 0 then
+            statsLabel.Text = "FPS: 0 | Ping: 0 | Status: No Fruits - Hopping Now"
+            wait(1)
+            HopServer()
+            break
+        end
+        
+        statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Found " .. fruitCount .. " Fruits"
+        
+        local foundAnyFruit = false
+        local checkStartTime = tick()
+        
+        -- Quét trong 20 giây
+        while tick() - checkStartTime < 20 and getgenv().AutoHop do
+            foundAnyFruit = false
+            
+            -- Quét workspace cho fruit
+            for _, obj in pairs(workspace:GetChildren()) do
+                if not getgenv().AutoHop then break end
+                
+                if (obj:IsA("Tool") and obj.Name:find("Fruit")) or 
+                   (obj:IsA("Model") and obj.Name:find("Fruit")) then
+                    
+                    foundAnyFruit = true
+                    statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Collecting Fruit!"
+                    
+                    -- Thử nhặt fruit
+                    local success = pcall(function()
+                        CollectFruit(obj)
+                    end)
+                    
+                    if success then
+                        wait(2) -- Đợi sau khi nhặt
+                        
+                        -- Tự động store fruit nếu bật
+                        if getgenv().AutoStoreFruit then
+                            wait(1)
+                        end
+                    end
+                    
+                    break -- Chỉ xử lý một fruit tại một thời điểm
+                end
+            end
+            
+            -- Kiểm tra lại số lượng fruit
+            local currentFruits = CheckFruitsInServer()
+            if currentFruits == 0 then
+                statsLabel.Text = "FPS: 0 | Ping: 0 | Status: All Fruits Collected - Hopping"
+                wait(1)
+                HopServer()
+                return
+            end
+            
+            if not foundAnyFruit then
+                statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Searching... (" .. currentFruits .. " left)"
+            end
+            
+            wait(1)
+        end
+        
+        -- Nếu hết thời gian mà vẫn không xử lý được fruit
+        if getgenv().AutoHop then
+            statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Timeout - Hopping Server"
+            wait(1)
+            HopServer()
+            break
+        end
+        
+        wait(1)
+    end
+end
+
+-- Cập nhật thông tin
+task.spawn(function()
+    while task.wait(1) do
+        pcall(function()
+            local level = LocalPlayer.Data.Level.Value
+            local beli = LocalPlayer.Data.Beli.Value
+            local frags = LocalPlayer.Data.Fragments.Value
+            infoLabel.Text = "Lv: " .. level .. " | Beli: " .. beli .. " | Frags: " .. frags
+        end)
+    end
+end)
+
+-- Cập nhật FPS và Ping
+RunService.RenderStepped:Connect(function(dt)
+    local fps = math.floor(1/dt)
+    local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
+    local currentText = statsLabel.Text
+    local status = string.match(currentText, "Status: (.+)") or "Running"
+    statsLabel.Text = "FPS: " .. fps .. " | Ping: " .. ping .. " | Status: " .. status
+end)
+
+-- Bắt đầu hệ thống Auto Store Fruit
+task.spawn(function()
+    wait(5)
+    while true do
+        if getgenv().AutoStoreFruit then
+            AutoStoreFruits()
+        end
+        wait(1)
+    end
+end)
+
+-- Hệ thống chính
+task.spawn(function()
+    wait(8) -- Đợi game load hoàn toàn
+    
+    while true do
+        if getgenv().AutoHop then
+            statsLabel.Text = "FPS: 0 | Ping: 0 | Status: Starting Auto Farm..."
+            MainFruitSystem()
+        end
+        wait(1)
+    end
+end)
+
+-- Thử hop server ngay lần đầu tiên nếu không có fruit
+task.spawn(function()
+    wait(10) -- Đợi 10 giây sau khi load
+    if getgenv().AutoHop then
+        local initialFruits = CheckFruitsInServer()
+        if initialFruits == 0 then
+            statsLabel.Text = "FPS: 0 | Ping: 0 | Status: No Fruits Found - First Hop"
+            wait(2)
+            HopServer()
+        end
+    end
+end)
